@@ -7,6 +7,8 @@ import com.facebook.jni.HybridData;
 import com.facebook.proguard.annotations.DoNotStrip;
 import com.facebook.react.bridge.NativeModule;
 import com.facebook.react.bridge.ReactApplicationContext;
+import com.facebook.react.bridge.ReadableMapKeySetIterator;
+import com.facebook.react.bridge.ReadableType;
 import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.turbomodule.core.CallInvokerHolderImpl;
@@ -53,6 +55,18 @@ public class NativeProxy {
 
     @Override
     public void receiveEvent(int targetTag, String eventName, @Nullable WritableMap event) {
+      if (event != null && eventName.equals("onGestureHandlerEvent")
+          || eventName.equals("onGestureHandlerStateChange")) {
+        ReadableMapKeySetIterator iterator = event.keySetIterator();
+        while (iterator.hasNextKey()) {
+          String key = iterator.nextKey();
+          if (event.getType(key) == ReadableType.Number && Double.isNaN(event.getDouble(key))) {
+            event.putNull(key);
+            Log.e("REANIMATED", "found NaN value in key: " + key);
+          }
+        }
+      }
+
       String resolvedEventName = mCustomEventNamesResolver.resolveCustomEventName(eventName);
       receiveEvent(targetTag + resolvedEventName, event);
     }
